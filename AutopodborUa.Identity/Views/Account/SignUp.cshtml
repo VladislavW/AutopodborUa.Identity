@@ -1,4 +1,4 @@
-﻿@model LoginViewModel
+﻿@model SignUpViewModel
 
 
 <div class="row login">
@@ -6,8 +6,7 @@
         <div class="card">
             <div class="card-action indigo-text center-align">
                 <h3 class="header">Autopodbor UA</h3>
-                <a class="btn-floating halfway-fab waves-effect waves-light" asp-action="SignUp" asp-controller="Account" asp-route-returnUrl="@Model.ReturnUrl"><i class="material-icons">person_add</i></a>
-
+                <a class="btn-floating halfway-fab waves-effect waves-light" asp-action="Login" asp-controller="Account" asp-route-returnUrl="@Model.ReturnUrl"><i class="material-icons">person</i></a>
             </div>
             <div class="card-content">
                 <form asp-route="Login" class="col s12">
@@ -22,7 +21,11 @@
                             <input type="password" class="form-control" asp-for="Password" autocomplete="off">
                         </div>
                         <div class="form-group">
-                            <button class="btn btn-primary waves-effect" name="button" value="login">Login</button>
+                            <label asp-for="ConfirmPassword"></label>
+                            <input type="password" class="form-control" asp-for="ConfirmPassword" autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <button class="btn btn-primary waves-effect" name="button" value="signup">Sign Up</button>
                             <button class="btn btn-default red lighten-2" name="button" value="cancel">Cancel</button>
                         </div>
                     </fieldset>
@@ -33,11 +36,11 @@
 </div>
 
 <style>
-    .login{
+    .login {
         margin-top: 15%;
     }
 
     .header {
-  font-family: Arial, Helvetica, sans-serif;
-}
+        font-family: Arial, Helvetica, sans-serif;
+    }
 </style>

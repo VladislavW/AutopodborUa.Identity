@@ -1,5 +1,6 @@
 ﻿using AutopodborUa.Identity.Areas.Account.Models;
 using AutopodborUa.Identity.Areas.Account.ViewModels;
+using AutopodborUa.Identity.Entities;
 using AutopodborUa.Identity.Infrastructure;
 using IdentityModel;
 using IdentityServer4;
@@ -10,6 +11,7 @@ using IdentityServer4.Services;
 using IdentityServer4.Test;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
@@ -19,17 +21,17 @@ namespace AutopodborUa.Identity.Areas.Account
     public class AccountController : AutopodborUaIdentityControllerBase
     {
         private readonly IIdentityServerInteractionService _interaction;
-        private readonly TestUserStore _users;
-        private readonly IEventService _events;
+        private readonly SignInManager<User> _signInManager;
+        private readonly UserManager<User> _userManager;
 
         public AccountController(
             IIdentityServerInteractionService interaction,
-            TestUserStore users,
-            IEventService events)
+            SignInManager<User> signInManager,
+            UserManager<User> userManager)
         {
             _interaction = interaction;
-            _users = users;
-            _events = events;
+            _signInManager = signInManager;
+            _userManager = userManager;
         }
 
         [HttpGet]
@@ -41,6 +43,64 @@ namespace AutopodborUa.Identity.Areas.Account
             {
                 ReturnUrl = returnUrl,
                 Username = context?.LoginHint
+            };
+
+            return View(vm);
+        }
+
+
+        [HttpGet]
+        public async Task<IActionResult> SignUp(string returnUrl)
+        {
+            var context = await _interaction.GetAuthorizationContextAsync(returnUrl);
+
+            var vm = new SignUpViewModel
+            {
+                ReturnUrl = returnUrl,
+                Username = context?.LoginHint
+            };
+
+            return View(vm);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SignUp(SignUpInputModel model, string button)
+        {
+            var context = await _interaction.GetAuthorizationContextAsync(model.ReturnUrl);
+            if (button != "signup")
+            {
+                if (context != null)
+                {
+                    await _interaction.GrantConsentAsync(context, ConsentResponse.Denied);
+                    return Redirect(model.ReturnUrl);
+                }
+                else
+                {
+                    return Redirect("~/");
+                }
+            }
+
+            var user = new User { UserName = model.Username, Email = model.Username };
+            var passwordHash = _userManager.PasswordHasher.HashPassword(user, model.Password);
+            user.PasswordHash = passwordHash;
+
+            var result = await _userManager.CreateAsync(user);
+            if (result.Succeeded)
+            {
+                await _signInManager.SignInAsync(user, isPersistent: false);
+                if (_interaction.IsValidReturnUrl(model.ReturnUrl) || Url.IsLocalUrl(model.ReturnUrl))
+                {
+                    return Redirect(model.ReturnUrl);
+                }
+
+                return Redirect("~/");
+            }
+
+            var vm = new SignUpViewModel
+            {
+                ReturnUrl = model.ReturnUrl,
+                Username = model.Username
             };
 
             return View(vm);
@@ -64,22 +124,9 @@ namespace AutopodborUa.Identity.Areas.Account
                 }
             }
 
-            if (_users.ValidateCredentials(model.Username, model.Password))
+            var result = await _signInManager.PasswordSignInAsync(model.Username, model.Password, true, lockoutOnFailure: true);
+            if (result.Succeeded)
             {
-                var user = _users.FindByUsername(model.Username);
-                await _events.RaiseAsync(new UserLoginSuccessEvent(user.Username, user.SubjectId, user.Username));
-
-                AuthenticationProperties props = null;
-                if (model.RememberLogin)
-                {
-                    props = new AuthenticationProperties
-                    {
-                        IsPersistent = true,
-                        ExpiresUtc = DateTimeOffset.UtcNow.Add(TimeSpan.FromDays(30))
-                    };
-                };
-
-                await HttpContext.SignInAsync(user.SubjectId, user.Username, props);
 
                 if (_interaction.IsValidReturnUrl(model.ReturnUrl) || Url.IsLocalUrl(model.ReturnUrl))
                 {
@@ -88,8 +135,6 @@ namespace AutopodborUa.Identity.Areas.Account
 
                 return Redirect("~/");
             }
-
-            await _events.RaiseAsync(new UserLoginFailureEvent(model.Username, "invalid credentials"));
 
             var vm = new LoginViewModel
             {
@@ -124,7 +169,6 @@ namespace AutopodborUa.Identity.Areas.Account
             if (User?.Identity.IsAuthenticated == true)
             {
                 await HttpContext.SignOutAsync();
-                await _events.RaiseAsync(new UserLogoutSuccessEvent(User.GetSubjectId(), User.GetDisplayName()));
             }
 
             //// check if we need to trigger sign-out at an upstream identity provider

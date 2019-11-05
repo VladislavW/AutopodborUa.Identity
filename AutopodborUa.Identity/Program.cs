@@ -1,3 +1,4 @@
+using AutopodborUa.Identity.Storage.Kernal;
 using IdentityServer4.EntityFramework.DbContexts;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
@@ -18,7 +19,7 @@ namespace AutopodborUa.Identity
             {
                 try
                 {
-                    var context = scope.ServiceProvider.GetService<PersistedGrantDbContext>();
+                    var context = scope.ServiceProvider.GetService<AutopodborUaIdentityContext>();
                     context.Database.Migrate();
                 }
                 catch (System.Exception ex)
