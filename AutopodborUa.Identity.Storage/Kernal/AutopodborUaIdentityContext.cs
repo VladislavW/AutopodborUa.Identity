@@ -9,7 +9,7 @@ namespace AutopodborUa.Identity.Storage.Kernal
     public class AutopodborUaIdentityContext : ApiAuthorizationDbContext<User>
     {
         public AutopodborUaIdentityContext(
-            DbContextOptions options,
+            DbContextOptions<AutopodborUaIdentityContext> options,
             IOptions<OperationalStoreOptions> operationalStoreOptions) : base(options, operationalStoreOptions)
         {
 

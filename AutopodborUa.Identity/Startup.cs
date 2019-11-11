@@ -25,25 +25,12 @@ namespace AutopodborUa.Identity
 
         public void ConfigureServices(IServiceCollection services)
         {
-            services
-                .AddCors()
-                .AddIdentityServerCustom(Configuration);
-
-            services.AddAuthentication()
-             .AddOpenIdConnect("Google", "Google",
-                 o =>
-                 {
-                     IConfigurationSection googleAuthNSection =
-                         Configuration.GetSection("Authentication:Google");
-                     o.ClientId = googleAuthNSection["ClientId"];
-                     o.ClientSecret = googleAuthNSection["ClientSecret"];
-                     o.Authority = "https://accounts.google.com";
-                     o.ResponseType = OpenIdConnectResponseType.Code;
-                     o.CallbackPath = "/signin-google";
-                 })
-             .AddIdentityServerJwt();
-
-            services.AddControllersWithViews();
+            services.AddCors();
+            services.AddMvcCustom();
+            services.AddAutopodborUaIdentityContext(Configuration);
+            services.AddIdentityServerCustom(Configuration);
+            services.AddGoogleOpenIdConnectCustom(Configuration);
+           // services.AddControllersWithViews(); 
 
             services.AddAuthorization(options =>
             {
@@ -56,10 +43,10 @@ namespace AutopodborUa.Identity
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
+                app.UseExceptionHandler("/Error");
             }
             else
             {
-                app.UseExceptionHandler("/Home/Error");
                 app.UseHsts();
             }
 
@@ -77,7 +64,7 @@ namespace AutopodborUa.Identity
             {
                 endpoints.MapControllerRoute(
                     name: "default",
-                    pattern: "{controller=Home}/{action=Index}/{id?}");
+                    pattern: "{controller=Account}/{action=Login}/{returnUrl?}");
             });
         }
     }

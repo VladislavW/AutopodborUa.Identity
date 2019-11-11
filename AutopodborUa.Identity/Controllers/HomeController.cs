@@ -7,16 +7,19 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using AutopodborUa.Identity.Models;
 using AutopodborUa.Identity.Infrastructure;
+using IdentityServer4.Services;
 
 namespace AutopodborUa.Identity.Controllers
 {
     public class HomeController : AutopodborUaIdentityControllerBase
     {
         private readonly ILogger<HomeController> _logger;
+        private readonly IIdentityServerInteractionService _interaction;
 
-        public HomeController(ILogger<HomeController> logger)
+        public HomeController(ILogger<HomeController> logger, IIdentityServerInteractionService interaction)
         {
             _logger = logger;
+            _interaction = interaction;
         }
 
         public IActionResult Index()
@@ -29,10 +32,19 @@ namespace AutopodborUa.Identity.Controllers
             return View();
         }
 
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
+
+        public async Task<IActionResult> Error(string errorId)
         {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+            var vm = new ErrorViewModel();
+
+            // retrieve error details from identityserver
+            var message = await _interaction.GetErrorContextAsync(errorId);
+            if (message != null)
+            {
+                vm.Error = message;
+            }
+
+            return View("Error", vm);
         }
     }
 }

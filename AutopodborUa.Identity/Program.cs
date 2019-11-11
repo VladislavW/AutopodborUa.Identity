@@ -21,6 +21,9 @@ namespace AutopodborUa.Identity
                 {
                     var context = scope.ServiceProvider.GetService<AutopodborUaIdentityContext>();
                     context.Database.Migrate();
+
+                    var persistedGrantDbContext = scope.ServiceProvider.GetService<PersistedGrantDbContext>();
+                    persistedGrantDbContext.Database.Migrate();
                 }
                 catch (System.Exception ex)
                 {
@@ -34,6 +37,8 @@ namespace AutopodborUa.Identity
 
         public static IWebHost BuildWebHost(string[] args) =>
             WebHost.CreateDefaultBuilder(args)
+                .UseSetting("detailedErrors", "true")
+                .CaptureStartupErrors(false)
                 .UseStartup<Startup>()
                 .Build();
     }

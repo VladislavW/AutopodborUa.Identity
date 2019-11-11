@@ -18,6 +18,7 @@ using System.Threading.Tasks;
 
 namespace AutopodborUa.Identity.Areas.Account
 {
+    [Route("/Identity/{controller}/{action}")]
     public class AccountController : AutopodborUaIdentityControllerBase
     {
         private readonly IIdentityServerInteractionService _interaction;
@@ -82,10 +83,7 @@ namespace AutopodborUa.Identity.Areas.Account
             }
 
             var user = new User { UserName = model.Username, Email = model.Username };
-            var passwordHash = _userManager.PasswordHasher.HashPassword(user, model.Password);
-            user.PasswordHash = passwordHash;
-
-            var result = await _userManager.CreateAsync(user);
+            var result = await _userManager.CreateAsync(user, model.Password);
             if (result.Succeeded)
             {
                 await _signInManager.SignInAsync(user, isPersistent: false);
@@ -168,7 +166,7 @@ namespace AutopodborUa.Identity.Areas.Account
 
             if (User?.Identity.IsAuthenticated == true)
             {
-                await HttpContext.SignOutAsync();
+                await _signInManager.SignOutAsync();
             }
 
             //// check if we need to trigger sign-out at an upstream identity provider
